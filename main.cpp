@@ -104,12 +104,37 @@ public:
         }
     };
 
+    class ConstRowProxy {
+    private:
+        const T* row_start;
+        size_type row_length;
+        
+    public:
+        ConstRowProxy(const T* start, size_type length) 
+            : row_start(start), row_length(length) {}
+        
+        T operator[](size_type x_idx) const {
+            if (x_idx >= row_length) {
+                throw std::out_of_range("Column index out of range");
+            }
+            return row_start[x_idx];
+        }
+    };
+
     RowProxy operator[](size_type y_idx) {
         if (!data) throw std::runtime_error("Accessing empty grid");
         if (y_idx >= y_size) {
             throw std::out_of_range("Row index out of range");
         }
         return RowProxy(data + y_idx * x_size, x_size);
+    }
+
+    ConstRowProxy operator[](size_type y_idx) const {
+        if (!data) throw std::runtime_error("Accessing empty grid");
+        if (y_idx >= y_size) {
+            throw std::out_of_range("Row index out of range");
+        }
+        return ConstRowProxy(data + y_idx * x_size, x_size);
     }
 
     size_type get_y_size() const { return y_size; }
