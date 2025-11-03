@@ -1,4 +1,6 @@
 #include <algorithm>
+#include <iostream>
+#include <stdexcept>
 template <typename T>
 class Grid final {
 public:
@@ -85,12 +87,59 @@ public:
         return data[y_idx * x_size + x_idx];
     }
 
+    class RowProxy {
+    private:
+        T* row_start;
+        size_type row_length;
+        
+    public:
+        RowProxy(T* start, size_type length) 
+            : row_start(start), row_length(length) {}
+        
+        T& operator[](size_type x_idx) {
+            if (x_idx >= row_length) {
+                throw std::out_of_range("Column index out of range");
+            }
+            return row_start[x_idx];
+        }
+    };
+
+    RowProxy operator[](size_type y_idx) {
+        if (!data) throw std::runtime_error("Accessing empty grid");
+        if (y_idx >= y_size) {
+            throw std::out_of_range("Row index out of range");
+        }
+        return RowProxy(data + y_idx * x_size, x_size);
+    }
+
     size_type get_y_size() const { return y_size; }
     size_type get_x_size() const { return x_size; }
 
 private:
-    T * const data;
+    T * data;
     size_type y_size, x_size;    
 
     
 };
+
+#include <cassert>
+int main() {
+    Grid<float> g(3, 2, 0.0f);
+    assert(3 == g.get_y_size());
+    assert(2 == g.get_x_size());
+
+    using gsize_t = Grid<float>::size_type;
+
+    for (gsize_t y_idx = 0; y_idx != g.get_y_size(); ++y_idx)
+        for (gsize_t x_idx = 0; x_idx != g.get_x_size(); ++x_idx)
+            assert(0.0f == g[y_idx][x_idx]);
+
+    for (gsize_t y_idx = 0; y_idx != g.get_y_size(); ++y_idx)
+        for (gsize_t x_idx = 0; x_idx != g.get_x_size(); ++x_idx)
+            g[y_idx][x_idx] = 1.0f;
+
+    for (gsize_t y_idx = 0; y_idx != g.get_y_size(); ++y_idx)
+        for (gsize_t x_idx = 0; x_idx != g.get_x_size(); ++x_idx)
+            assert(1.0f == g(y_idx, x_idx));
+    return 0;
+}
