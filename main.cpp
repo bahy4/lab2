@@ -1,11 +1,19 @@
 #include <algorithm>
+#include <cstddef>
 #include <iostream>
 #include <stdexcept>
+#include <cassert>
+
+template <typename T, size_t N>
+class Grid;
+
 template <typename T>
-class Grid final {
+class Grid <T, 1> final {
 public:
     using value_type = T;
     using size_type = unsigned;
+
+    
 
     //правило 5
     //деструктор
@@ -14,10 +22,10 @@ public:
     }
 
     //конструктор копирования
-    Grid(Grid const &other) : data(nullptr), y_size(other.y_size), x_size(other.x_size) {
+    Grid(Grid const &other) : data(nullptr), size_0(other.size_0) {
         if (other.data) {
-            data = new T[y_size * x_size];
-            std::copy(other.data, other.data + y_size * x_size, data);
+            data = new T[size_0];
+            std::copy(other.data, other.data + size_0, data);
         }
     }
 
@@ -25,12 +33,11 @@ public:
     Grid& operator=(Grid const &other) {
         if (this != &other) {
             delete[] data;
-            y_size = other.y_size;
-            x_size = other.x_size;
+            size_0 = other.size_0;
             data = nullptr;
             if (other.data) {
-                data = new T[y_size * x_size];
-                std::copy(other.data, other.data + y_size * x_size, data);
+                data = new T[size_0];
+                std::copy(other.data, other.data + size_0, data);
             }
         }
         return *this;
@@ -41,50 +48,154 @@ public:
         if (this != &other) {
             delete[] data;
             data = other.data;
-            y_size = other.y_size;
-            x_size = other.x_size;
+            size_0 = other.size_0;
             other.data = nullptr;
-            other.y_size = 0;
-            other.x_size = 0;
+            other.size_0 = 0;
         }
         return *this;
     }
 
     //конструктор перемещения
-    Grid(Grid &&other) noexcept : data(other.data), y_size(other.y_size), x_size(other.x_size) {
+    Grid(Grid &&other) noexcept : data(other.data), size_0(other.size_0) {
         other.data = nullptr;
-        other.y_size = 0;
-        other.x_size = 0;
+        other.size_0 = 0;
     }
 
     //конструктор 1
-    Grid(T const &t) : data(new T[1]), y_size(1), x_size(1) {
+    Grid(T const &t) : data(new T[1]), size_0(1) {
         data[0] = t;
     }
 
     //конструктор 2
-    Grid(size_type y = 0, size_type x = 0) : data(nullptr), y_size(y), x_size(x) {
-        if (y_size > 0 && x_size > 0) {
-            data = new T[y_size * x_size];
+    Grid(size_type size = 0) : data(nullptr), size_0(size) {
+        if (size_0 > 0) {
+            data = new T[size_0];
         }
     }
 
     //конструктор 3
-    Grid(size_type y, size_type x, T const &t) : data(nullptr), y_size(y), x_size(x) {
-        if (y_size > 0 && x_size > 0) {
-            data = new T[y_size * x_size];
-            for (size_type i = 0; i < y_size * x_size; ++i) {
+    Grid(size_type size, T const &t) : data(nullptr), size_0(size) {
+        if (size_0 > 0) {
+            data = new T[size_0];
+            for (size_type i = 0; i < size_0; ++i) {
                 data[i] = t;
             }
         }
     }
 
-    T operator()(size_type y_idx, size_type x_idx) const {
-        return data[y_idx * x_size + x_idx];
+    //доступ через ()
+
+    T operator()(size_type i0) const {
+        if (!data) throw std::runtime_error("Accessing empty grid");
+        if (i0 >= size_0) throw std::out_of_range("Index out of range");
+        return data[i0];
+    }
+    
+    T& operator()(size_type i0) {
+        if (!data) throw std::runtime_error("Accessing empty grid");
+        if (i0 >= size_0) throw std::out_of_range("Index out of range");
+        return data[i0];
     }
 
-    T& operator()(size_type y_idx, size_type x_idx) {
-        return data[y_idx * x_size + x_idx];
+    //доступ через []
+
+    T operator[](size_type x) const {
+        if (!data) throw std::runtime_error("Accessing empty grid");
+        if (x >= size_0) {
+            throw std::out_of_range("Row index out of range");
+        }
+        return data[x];
+    }
+
+    T& operator[](size_type x) {
+        if (!data) throw std::runtime_error("Accessing empty grid");
+        if (x >= size_0) {
+            throw std::out_of_range("Row index out of range");
+        }
+        return data[x];
+    }
+
+    size_type get_size() const { return size_0; }
+
+private:
+    T * data;
+    size_type size_0;    
+
+    
+};
+
+
+template <typename T, size_t N>
+class Grid final {
+    static_assert(N >= 2, "Dimension must be at least 2");
+public:
+    using value_type = T;
+    using size_type = unsigned;
+
+    Grid() : data(nullptr), size_0(0) {}
+
+    //правило 5
+    //деструктор
+    ~Grid() {
+        delete[] data;
+    }
+
+    //конструктор копирования
+    Grid(Grid const &other) : data(nullptr), size_0(other.size_0) {
+        if (other.data) {
+            data = new Grid<T,N-1> [size_0];
+            std::copy(other.data, other.data + size_0, data);
+        }
+    }
+
+    //оператор присваивания копированием
+    Grid& operator=(Grid const &other) {
+        if (this != &other) {
+            delete[] data;
+            size_0 = other.size_0;
+            data = nullptr;
+            if (other.data) {
+                data = new Grid<T,N-1> [size_0];
+                std::copy(other.data, other.data + size_0, data);
+            }
+        }
+        return *this;
+    }
+
+    // Оператор присваивания перемещением
+    Grid& operator=(Grid &&other) noexcept {
+        if (this != &other) {
+            delete[] data;
+            data = other.data;
+            size_0 = other.size_0;
+            other.data = nullptr;
+            other.size_0 = 0;
+        }
+        return *this;
+    }
+
+    //конструктор перемещения
+    Grid(Grid &&other) noexcept : data(other.data), size_0(other.size_0) {
+        other.data = nullptr;
+        other.size_0 = 0;
+    }
+
+    //конструктор 1
+    Grid(Grid<T, N-1> const &t) : data(new Grid<T, N-1>), size_0(1) {
+        data[0] = t;
+    }
+
+    //конструктор 2
+    template<typename... Args, typename = std::enable_if_t<(sizeof...(Args) == N)>>
+    Grid(Args... sizes) {
+        initialize_sizes(sizes...);
+    }
+
+    //конструктор 3
+    template<typename ... Rest>
+    Grid(size_t first, Rest... rest)  {
+        static_assert(sizeof...(rest) == N, "Wrong number of arguments");
+        initialize_with_value(first, rest...);
     }
 
     class RowProxy {
@@ -104,67 +215,71 @@ public:
         }
     };
 
-    class ConstRowProxy {
-    private:
-        const T* row_start;
-        size_type row_length;
-        
-    public:
-        ConstRowProxy(const T* start, size_type length) 
-            : row_start(start), row_length(length) {}
-        
-        T operator[](size_type x_idx) const {
-            if (x_idx >= row_length) {
-                throw std::out_of_range("Column index out of range");
-            }
-            return row_start[x_idx];
-        }
-    };
+    //доступ через ()
 
-    RowProxy operator[](size_type y_idx) {
-        if (!data) throw std::runtime_error("Accessing empty grid");
-        if (y_idx >= y_size) {
-            throw std::out_of_range("Row index out of range");
-        }
-        return RowProxy(data + y_idx * x_size, x_size);
+    template<typename... Indices>
+    T operator()(size_type i0, Indices... indices) const {
+        if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
+        return data[i0](indices...);
+    }
+    
+    template<typename... Indices>
+    T& operator()(size_type i0, Indices... indices) {
+        if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
+        return data[i0](indices...);
     }
 
-    ConstRowProxy operator[](size_type y_idx) const {
-        if (!data) throw std::runtime_error("Accessing empty grid");
-        if (y_idx >= y_size) {
-            throw std::out_of_range("Row index out of range");
-        }
-        return ConstRowProxy(data + y_idx * x_size, x_size);
+    //доступ через []
+
+    Grid<T, N-1>& operator[](size_type i0) {
+        if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
+        return data[i0];
+    }
+    
+    Grid<T, N-1> const& operator[](size_type i0) const {
+        if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
+        return data[i0];
     }
 
-    size_type get_y_size() const { return y_size; }
-    size_type get_x_size() const { return x_size; }
+    size_type get_size() const { return size_0; }
 
 private:
-    T * data;
-    size_type y_size, x_size;    
+    Grid<T, N-1> * data;
+    size_type size_0;    
 
+    template<typename... Args>
+    void initialize_sizes(size_type first, Args... rest) {
+        size_0 = first;
+        if (size_0 > 0) {
+            data = new Grid<T, N-1> [size_0];
+            for (size_type i = 0; i < size_0; ++i) {
+                data[i] = Grid<T, N-1>(rest...);
+            }
+        }
+    }
+    template<typename... Args>
+    void initialize_with_value(size_type first, Args... rest) {
+        size_0 = first;
+        if (size_0 > 0) {
+            data = new Grid<T, N-1> [size_0];
+            for (size_type i = 0; i < size_0; ++i) {
+                data[i] = Grid<T, N-1>(rest...);
+            }
+        }
+    }
     
 };
 
-#include <cassert>
+
+
 int main() {
-    Grid<float> g(3, 2, 0.0f);
-    assert(3 == g.get_y_size());
-    assert(2 == g.get_x_size());
+    Grid<float,3> const g3(2, 3, 4, 1.0f);
+    assert(1.0f == g3(1, 1, 1));
 
-    using gsize_t = Grid<float>::size_type;
+    Grid<float,2> g2(2, 5, 2.0f);
+    assert(2.0f == g2(1, 1));
 
-    for (gsize_t y_idx = 0; y_idx != g.get_y_size(); ++y_idx)
-        for (gsize_t x_idx = 0; x_idx != g.get_x_size(); ++x_idx)
-            assert(0.0f == g[y_idx][x_idx]);
-
-    for (gsize_t y_idx = 0; y_idx != g.get_y_size(); ++y_idx)
-        for (gsize_t x_idx = 0; x_idx != g.get_x_size(); ++x_idx)
-            g[y_idx][x_idx] = 1.0f;
-
-    for (gsize_t y_idx = 0; y_idx != g.get_y_size(); ++y_idx)
-        for (gsize_t x_idx = 0; x_idx != g.get_x_size(); ++x_idx)
-            assert(1.0f == g(y_idx, x_idx));
+    g2 = g3[1];
+    assert(1.0f == g2(1, 1));
     return 0;
 }
