@@ -100,9 +100,10 @@ public:
         if (size_0 > 0) {
             data = new T[size_0];
             try{
-                for (size_type i = 0; i < size_0; ++i) {
+                std::fill(data, data+size_0, t);
+                /*for (size_type i = 0; i < size_0; ++i) {
                     data[i] = t;
-                }
+                }*/
             } catch(...){
                 delete[] data;
                 data = nullptr;
@@ -129,18 +130,10 @@ public:
     //доступ через []
 
     T operator[](size_type x) const {
-        if (!data) throw std::runtime_error("Accessing empty grid");
-        if (x >= size_0) {
-            throw std::out_of_range("Row index out of range");
-        }
         return data[x];
     }
 
     T& operator[](size_type x) {
-        if (!data) throw std::runtime_error("Accessing empty grid");
-        if (x >= size_0) {
-            throw std::out_of_range("Row index out of range");
-        }
         return data[x];
     }
 
@@ -281,12 +274,10 @@ public:
     //доступ через []
 
     Grid<T, N-1>& operator[](size_type i0) {
-        if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
         return data[i0];
     }
     
     Grid<T, N-1> const& operator[](size_type i0) const {
-        if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
         return data[i0];
     }
 
@@ -301,9 +292,10 @@ private:
         size_0 = first;
         if (size_0 > 0) {
             data = new Grid<T, N-1> [size_0];
-            for (size_type i = 0; i < size_0; ++i) {
+            std::fill(data, data + size_0, Grid<T, N-1>(std::forward<decltype(rest)>(rest)...));
+            /*for (size_type i = 0; i < size_0; ++i) {
                 data[i] = Grid<T, N-1>(std::forward<decltype(rest)>(rest)...);
-            }
+            }*/
         }
     }
     template<typename... Args>
@@ -311,9 +303,10 @@ private:
         size_0 = first;
         if (size_0 > 0) {
             data = new Grid<T, N-1> [size_0];
-            for (size_type i = 0; i < size_0; ++i) {
+            std::fill(data, data + size_0, Grid<T, N-1>(std::forward<decltype(rest)>(rest)...));
+            /*for (size_type i = 0; i < size_0; ++i) {
                 data[i] = Grid<T, N-1>(std::forward<decltype(rest)>(rest)...);
-            }
+            }*/
         }
     }
     
