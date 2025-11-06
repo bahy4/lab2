@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <cassert>
+#include <utility>
 
 template <typename T, size_t N>
 class Grid;
@@ -10,7 +11,6 @@ class Grid;
 template <typename T>
 class Grid <T, 1> final {
 public:
-    using value_type = T;
     using size_type = unsigned;
 
     
@@ -25,7 +25,14 @@ public:
     Grid(Grid const &other) : data(nullptr), size_0(other.size_0) {
         if (other.data) {
             data = new T[size_0];
-            std::copy(other.data, other.data + size_0, data);
+            try{
+                std::copy(other.data, other.data + size_0, data);
+            } catch(...){
+                delete[] data;
+                data = nullptr;
+                size_0 = 0;
+                throw;
+            }
         }
     }
 
@@ -37,7 +44,14 @@ public:
             data = nullptr;
             if (other.data) {
                 data = new T[size_0];
-                std::copy(other.data, other.data + size_0, data);
+                try{
+                    std::copy(other.data, other.data + size_0, data);
+                } catch(...){
+                delete[] data;
+                data = nullptr;
+                size_0 = 0;
+                throw;
+                }
             }
         }
         return *this;
@@ -63,7 +77,15 @@ public:
 
     //конструктор 1
     Grid(T const &t) : data(new T[1]), size_0(1) {
-        data[0] = t;
+        
+        try{
+            data[0] = t;
+        } catch(...){
+            delete[] data;
+            data = nullptr;
+            size_0 = 0;
+            throw;
+        }
     }
 
     //конструктор 2
@@ -77,8 +99,15 @@ public:
     Grid(size_type size, T const &t) : data(nullptr), size_0(size) {
         if (size_0 > 0) {
             data = new T[size_0];
-            for (size_type i = 0; i < size_0; ++i) {
-                data[i] = t;
+            try{
+                for (size_type i = 0; i < size_0; ++i) {
+                    data[i] = t;
+                }
+            } catch(...){
+                delete[] data;
+                data = nullptr;
+                size_0 = 0;
+                throw;
             }
         }
     }
@@ -129,7 +158,6 @@ template <typename T, size_t N>
 class Grid final {
     static_assert(N >= 2, "Dimension must be at least 2");
 public:
-    using value_type = T;
     using size_type = unsigned;
 
     Grid() : data(nullptr), size_0(0) {}
@@ -144,7 +172,15 @@ public:
     Grid(Grid const &other) : data(nullptr), size_0(other.size_0) {
         if (other.data) {
             data = new Grid<T,N-1> [size_0];
-            std::copy(other.data, other.data + size_0, data);
+            try{
+                std::copy(other.data, other.data + size_0, data);
+            } catch(...){
+                delete[] data;
+                data = nullptr;
+                size_0 = 0;
+                throw;
+            }
+            
         }
     }
 
@@ -156,7 +192,14 @@ public:
             data = nullptr;
             if (other.data) {
                 data = new Grid<T,N-1> [size_0];
-                std::copy(other.data, other.data + size_0, data);
+                try{
+                    std::copy(other.data, other.data + size_0, data);
+                } catch(...){
+                    delete[] data;
+                        data = nullptr;
+                    size_0 = 0;
+                    throw;
+                }
             }
         }
         return *this;
@@ -182,51 +225,57 @@ public:
 
     //конструктор 1
     Grid(Grid<T, N-1> const &t) : data(new Grid<T, N-1>), size_0(1) {
-        data[0] = t;
+        try{
+            data[0] = t;
+        } catch(...){
+            delete[] data;
+            data = nullptr;
+            size_0 = 0;
+            throw;
+        }
     }
 
     //конструктор 2
     template<typename... Args, typename = std::enable_if_t<(sizeof...(Args) == N)>>
     Grid(Args... sizes) {
-        initialize_sizes(sizes...);
+        
+        try{
+            initialize_sizes(std::forward(sizes)...);
+        } catch(...){
+            delete[] data;
+            data = nullptr;
+            size_0 = 0;
+            throw;
+        }
     }
 
     //конструктор 3
     template<typename ... Rest>
     Grid(size_t first, Rest... rest)  {
         static_assert(sizeof...(rest) == N, "Wrong number of arguments");
-        initialize_with_value(first, rest...);
-    }
-
-    class RowProxy {
-    private:
-        T* row_start;
-        size_type row_length;
-        
-    public:
-        RowProxy(T* start, size_type length) 
-            : row_start(start), row_length(length) {}
-        
-        T& operator[](size_type x_idx) {
-            if (x_idx >= row_length) {
-                throw std::out_of_range("Column index out of range");
-            }
-            return row_start[x_idx];
+        try{
+            initialize_with_value(first, std::forward<decltype(rest)>(rest)...);
+        } catch(...){
+            delete[] data;
+            data = nullptr;
+            size_0 = 0;
+            throw;
         }
-    };
+        
+    }
 
     //доступ через ()
 
     template<typename... Indices>
     T operator()(size_type i0, Indices... indices) const {
         if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
-        return data[i0](indices...);
+        return data[i0](std::forward<decltype(indices)>(indices)...);
     }
     
     template<typename... Indices>
     T& operator()(size_type i0, Indices... indices) {
         if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
-        return data[i0](indices...);
+        return data[i0](std::forward<decltype(indices)>(indices)...);
     }
 
     //доступ через []
@@ -253,7 +302,7 @@ private:
         if (size_0 > 0) {
             data = new Grid<T, N-1> [size_0];
             for (size_type i = 0; i < size_0; ++i) {
-                data[i] = Grid<T, N-1>(rest...);
+                data[i] = Grid<T, N-1>(std::forward<decltype(rest)>(rest)...);
             }
         }
     }
@@ -263,7 +312,7 @@ private:
         if (size_0 > 0) {
             data = new Grid<T, N-1> [size_0];
             for (size_type i = 0; i < size_0; ++i) {
-                data[i] = Grid<T, N-1>(rest...);
+                data[i] = Grid<T, N-1>(std::forward<decltype(rest)>(rest)...);
             }
         }
     }
