@@ -244,10 +244,10 @@ public:
 
     //конструктор 3
     template<typename ... Rest>
-    Grid(size_t first, Rest... rest)  {
+    Grid(size_t first, Rest&&... rest)  {
         static_assert(sizeof...(rest) == N, "Wrong number of arguments");
         try{
-            initialize_with_value(first, std::forward<decltype(rest)>(rest)...);
+            initialize_with_value(first, std::forward<Rest>(rest)...);
         } catch(...){
             delete[] data;
             data = nullptr;
@@ -260,15 +260,15 @@ public:
     //доступ через ()
 
     template<typename... Indices>
-    T operator()(size_type i0, Indices... indices) const {
+    T operator()(size_type i0, Indices&&... indices) const {
         if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
-        return data[i0](std::forward<decltype(indices)>(indices)...);
+        return data[i0](std::forward<Indices>(indices)...);
     }
     
     template<typename... Indices>
-    T& operator()(size_type i0, Indices... indices) {
+    T& operator()(size_type i0, Indices&&... indices) {
         if (i0 >= size_0) throw std::out_of_range("Index 0 out of range");
-        return data[i0](std::forward<decltype(indices)>(indices)...);
+        return data[i0](std::forward<Indices>(indices)...);
     }
 
     //доступ через []
@@ -288,22 +288,22 @@ private:
     size_type size_0;    
 
     template<typename... Args>
-    void initialize_sizes(size_type first, Args... rest) {
+    void initialize_sizes(size_type first, Args&&... rest) {
         size_0 = first;
         if (size_0 > 0) {
             data = new Grid<T, N-1> [size_0];
-            std::fill(data, data + size_0, Grid<T, N-1>(std::forward<decltype(rest)>(rest)...));
+            std::fill(data, data + size_0, Grid<T, N-1>(std::forward<Args>(rest)...));
             /*for (size_type i = 0; i < size_0; ++i) {
                 data[i] = Grid<T, N-1>(std::forward<decltype(rest)>(rest)...);
             }*/
         }
     }
     template<typename... Args>
-    void initialize_with_value(size_type first, Args... rest) {
+    void initialize_with_value(size_type first, Args&&... rest) {
         size_0 = first;
         if (size_0 > 0) {
             data = new Grid<T, N-1> [size_0];
-            std::fill(data, data + size_0, Grid<T, N-1>(std::forward<decltype(rest)>(rest)...));
+            std::fill(data, data + size_0, Grid<T, N-1>(std::forward<Args>(rest)...));
             /*for (size_type i = 0; i < size_0; ++i) {
                 data[i] = Grid<T, N-1>(std::forward<decltype(rest)>(rest)...);
             }*/
